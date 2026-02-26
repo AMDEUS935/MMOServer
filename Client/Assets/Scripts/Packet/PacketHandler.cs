@@ -21,7 +21,7 @@ class PacketHandler
 	public static void S_LeaveGameHandler(PacketSession session, IMessage packet)
 	{
 		S_LeaveGame leaveGameHandler = packet as S_LeaveGame;
-		Managers.Object.RemoveMyPlayer();
+		Managers.Object.Clear();
 	}
 
 	public static void S_SpawnHandler(PacketSession session, IMessage packet)
@@ -50,11 +50,11 @@ class PacketHandler
 		if (go == null)
 			return;
 
-		CreatureController cc = go.GetComponent<CreatureController>();
-		if (cc == null)
+		BaseController bc = go.GetComponent<BaseController>();
+		if (bc == null)
 			return;
 
-		cc.PosInfo = movePacket.PosInfo;
+		bc.PosInfo = movePacket.PosInfo;
 	}
 
 	public static void S_SkillHandler(PacketSession session, IMessage packet)
