@@ -9,44 +9,40 @@ namespace Server.Game.Object
 	public class Arrow : Projectile
 	{
 		public GameObject Owner { get; set; }
-		
-		long _nextMoveTick = 0;
 
 		public override void Update()
 		{
-			if(Data == null || Data.Projectile == null || Owner == null || Room == null)
+			if (Data == null || Data.Projectile == null || Owner == null || Room == null)
 				return;
 
-			if (Environment.TickCount64 < _nextMoveTick)
-				return;
-
-			long tick = (long)(1000 / Data.Projectile.speed);
-			_nextMoveTick = Environment.TickCount64 + tick;
+			int tick = (int)(1000 / Data.Projectile.speed);
+			Room.PushAfter(Update, tick);
 
 			Vector2Int destPos = GetFrontCellPos();
-			
-			if (Room.Map.CanGo(destPos))
-			{
-				CellPos = destPos;
 
+			if (Room.Map.ApplyMove(this, destPos, collision: false))
+			{
 				S_Move movePacket = new S_Move();
 				movePacket.ObjectId = id;
 				movePacket.PosInfo = PosInfo;
-				Room.Broadcast(movePacket);
-
-				Console.WriteLine("Move Arrow!");
+				Room.Broadcast(CellPos, movePacket);
 			}
 			else
 			{
 				GameObject target = Room.Map.Find(destPos);
-				
+
 				if (target != null)
 				{
-					target.OnDamaged(Owner, Data.Damage + Owner.Stat.Attack);
+					target.OnDamaged(this, Data.Damage + Owner.TotalAttack);
 				}
 
 				Room.Push(Room.LeaveGame, id);
 			}
+		}
+
+		public override GameObject GetOwner()
+		{
+			return Owner;
 		}
 	}
 }

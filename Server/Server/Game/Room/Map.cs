@@ -13,6 +13,32 @@ namespace Server.Game.Room
 		public Pos(int y, int x) { Y = y; X = x; }
 		public int Y;
 		public int X;
+
+		public static bool operator ==(Pos lhs, Pos rhs)
+		{
+			return lhs.Y == rhs.Y && lhs.X == rhs.X;
+		}
+
+		public static bool operator !=(Pos lhs, Pos rhs)
+		{
+			return !(lhs == rhs);
+		}
+
+		public override bool Equals(object obj)
+		{
+			return (Pos)obj == this;
+		}
+
+		public override int GetHashCode()
+		{
+			long value = (Y << 32) | X;
+			return value.GetHashCode();
+		}
+
+		public override string ToString()
+		{
+			return base.ToString();
+		}
 	}
 
 	public struct PQNode : IComparable<PQNode>
@@ -95,30 +121,80 @@ namespace Server.Game.Room
 			int y = MaxY - cellPos.y;
 			return _objects[y, x];
 		}
-		public bool ApplyMove(GameObject gameObject, Vector2Int dest)
+		public bool ApplyMove(GameObject gameObject, Vector2Int dest, bool checkObjects = true, bool collision = true)
 		{
-			ApplyLeave(gameObject);
-
-			if (gameObject.Room == null)
+			if(gameObject.Room == null)
 				return false;
-			if (gameObject.Room.Map != this)
+			if(gameObject.Room.Map != this)
 				return false;
 
-			PositionInfo posInfo = gameObject.Info.PosInfo;
+			PositionInfo posInfo = gameObject.PosInfo;
 
-			if (CanGo(dest, true) == false)
+			if(CanGo(dest, checkObjects) == false)
 				return false;
 
+			if (collision)
 			{
-				int x = dest.x - MinX;
-				int y = MaxY - dest.y;
-				_objects[y, x] = gameObject;
+				{
+					int x = posInfo.PosX - MinX;
+					int y = MaxY - posInfo.PosY;
+					if (_objects[y, x] == gameObject)
+						_objects[y, x] = null;
+				}
+
+				{
+					int x = dest.x - MinX;
+					int y = MaxY - dest.y;
+					_objects[y, x] = gameObject;
+				}
 			}
 
+			GameObjectType type = ObjectManager.GetObjectTypeById(gameObject.id);
+
+			if (type == GameObjectType.Player)
+			{
+				Player player = (Player)gameObject;
+
+				Zone now = gameObject.Room.GetZone(gameObject.CellPos);
+				Zone after = gameObject.Room.GetZone(dest);
+
+				if (now != after)
+				{
+					now.Players.Remove(player);
+					after.Players.Add(player);
+				} 
+			}
+
+			else if (type == GameObjectType.Monster)
+			{
+				Monster monster = (Monster)gameObject;
+
+				Zone now = gameObject.Room.GetZone(gameObject.CellPos);
+				Zone after = gameObject.Room.GetZone(dest);
+
+				if (now != after)
+				{
+					now.Monsters.Remove(monster);
+					after.Monsters.Add(monster);
+				}
+			}
+
+			else if (type == GameObjectType.Projectile)
+			{
+				Projectile projectile = (Projectile)gameObject;
+
+				Zone now = gameObject.Room.GetZone(gameObject.CellPos);
+				Zone after = gameObject.Room.GetZone(dest);
+
+				if (now != after)
+				{
+					now.Projectiles.Remove(projectile);
+					after.Projectiles.Add(projectile);
+				}
+			}
 			// 실제 좌표 이동
 			posInfo.PosX = dest.x;
 			posInfo.PosY = dest.y;
-
 			return true;
 		}
 
@@ -126,16 +202,19 @@ namespace Server.Game.Room
 		{
 			if (gameObject.Room == null)
 				return false;
-			if(gameObject.Room.Map != this)
+			if (gameObject.Room.Map != this)
 				return false;
 
 			PositionInfo posInfo = gameObject.Info.PosInfo;
 
 			if (posInfo.PosX < MinX || posInfo.PosX > MaxX)
 				return false;
-
+			
 			if (posInfo.PosY < MinY || posInfo.PosY > MaxY)
 				return false;
+
+			Zone zone = gameObject.Room.GetZone(gameObject.CellPos);
+			zone.Remove(gameObject);
 
 			{
 				int x = posInfo.PosX - MinX;
@@ -183,49 +262,48 @@ namespace Server.Game.Room
 		int[] _deltaX = new int[] { 0, 0, -1, 1 };
 		int[] _cost = new int[] { 10, 10, 10, 10 };
 
-		public List<Vector2Int> FindPath(Vector2Int startCellPos, Vector2Int destCellPos, bool checkObjects = true)
+		public List<Vector2Int> FindPath(Vector2Int startCellPos, Vector2Int destCellPos, bool checkObjects = true, int maxDist = 10)
 		{
 			List<Pos> path = new List<Pos>();
 
-			bool[,] closed = new bool[SizeY, SizeX]; 
+			HashSet<Pos> closeList = new HashSet<Pos>();
 
-			int[,] open = new int[SizeY, SizeX];
-			for (int y = 0; y < SizeY; y++)
-				for (int x = 0; x < SizeX; x++)
-					open[y, x] = int.MaxValue;
-
-			Pos[,] parent = new Pos[SizeY, SizeX];
+			Dictionary<Pos, int> openList = new Dictionary<Pos, int>();
+			Dictionary<Pos, Pos> parent = new Dictionary<Pos, Pos>();
 
 			PriorityQueue<PQNode> pq = new PriorityQueue<PQNode>();
 
-			// CellPos -> ArrayPos
 			Pos pos = Cell2Pos(startCellPos);
 			Pos dest = Cell2Pos(destCellPos);
 
-			// 시작점 발견 (예약 진행)
-			open[pos.Y, pos.X] = 10 * (Math.Abs(dest.Y - pos.Y) + Math.Abs(dest.X - pos.X));
+			openList.Add(pos, 10 * (Math.Abs(dest.Y - pos.Y) + Math.Abs(dest.X - pos.X)));
+
 			pq.Push(new PQNode() { F = 10 * (Math.Abs(dest.Y - pos.Y) + Math.Abs(dest.X - pos.X)), G = 0, Y = pos.Y, X = pos.X });
-			parent[pos.Y, pos.X] = new Pos(pos.Y, pos.X);
+			parent.Add(pos, pos);
 
 			while (pq.Count > 0)
 			{
-				
-				PQNode node = pq.Pop();
-				
-				if (closed[node.Y, node.X])
+				PQNode pqNode = pq.Pop();
+				Pos node = new Pos(pqNode.Y, pqNode.X);
+
+				if (closeList.Contains(node))
 					continue;
 
-				
-				closed[node.Y, node.X] = true;
-				
+
+				closeList.Add(node);
+
+
 				if (node.Y == dest.Y && node.X == dest.X)
 					break;
 
-				
+
 				for (int i = 0; i < _deltaY.Length; i++)
 				{
 					Pos next = new Pos(node.Y + _deltaY[i], node.X + _deltaX[i]);
 
+
+					if (Math.Abs(pos.Y - next.Y) + Math.Abs(pos.X - next.X) > maxDist)
+						continue;
 
 					if (next.Y != dest.Y || next.X != dest.X)
 					{
@@ -233,55 +311,76 @@ namespace Server.Game.Room
 							continue;
 					}
 
-					
-					if (closed[next.Y, next.X])
+					if (closeList.Contains(next))
 						continue;
 
-					
+
 					int g = 0;
 					int h = 10 * ((dest.Y - next.Y) * (dest.Y - next.Y) + (dest.X - next.X) * (dest.X - next.X));
-					
-					if (open[next.Y, next.X] < g + h)
+
+					int value = 0;
+					if (openList.TryGetValue(next, out value) == false)
+						value = Int32.MaxValue;
+
+					if (value < g + h)
 						continue;
 
-					
-					open[dest.Y, dest.X] = g + h;
+					if (openList.TryAdd(next, g + h) == false)
+						openList[next] = g + h;
+
 					pq.Push(new PQNode() { F = g + h, G = g, Y = next.Y, X = next.X });
-					parent[next.Y, next.X] = new Pos(node.Y, node.X);
+
+					if (parent.TryAdd(next, node) == false)
+						parent[next] = node;
 				}
 			}
 
 			return CalcCellPathFromParent(parent, dest);
 		}
 
-		List<Vector2Int> CalcCellPathFromParent(Pos[,] parent, Pos dest)
+		List<Vector2Int> CalcCellPathFromParent(Dictionary<Pos, Pos> parent, Pos dest)
 		{
 			List<Vector2Int> cells = new List<Vector2Int>();
 
-			int y = dest.Y;
-			int x = dest.X;
-			while (parent[y, x].Y != y || parent[y, x].X != x)
+			if (parent.ContainsKey(dest) == false)
 			{
-				cells.Add(Pos2Cell(new Pos(y, x)));
-				Pos pos = parent[y, x];
-				y = pos.Y;
-				x = pos.X;
+				Pos best = new Pos();
+				int bestDist = Int32.MaxValue;
+
+				foreach (Pos pos in parent.Keys)
+				{
+					int dist = Math.Abs(dest.X - pos.X) + Math.Abs(dest.Y - pos.Y);
+					if (dist < bestDist)
+					{
+						best = pos;
+						bestDist = dist;
+					}
+				}
+
+				dest = best;
 			}
-			cells.Add(Pos2Cell(new Pos(y, x)));
-			cells.Reverse();
+
+			{
+				Pos pos = dest;
+				while (parent[pos] != pos)
+				{
+					cells.Add(Pos2Cell(pos));
+					pos = parent[pos];
+				}
+				cells.Add(Pos2Cell(pos));
+				cells.Reverse();
+			}
 
 			return cells;
 		}
 
 		Pos Cell2Pos(Vector2Int cell)
 		{
-			// CellPos -> ArrayPos
 			return new Pos(MaxY - cell.y, cell.x - MinX);
 		}
 
 		Vector2Int Pos2Cell(Pos pos)
 		{
-			// ArrayPos -> CellPos
 			return new Vector2Int(pos.X + MinX, MaxY - pos.Y);
 		}
 

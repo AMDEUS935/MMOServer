@@ -21,6 +21,9 @@ namespace Server.Game.Object
 		public PositionInfo PosInfo { get; private set; } = new PositionInfo();
 		public StatInfo Stat { get; private set; } = new StatInfo();
 
+		public virtual int TotalAttack { get { return Stat.Attack; } }
+		public virtual int TotalDefence { get { return 0; } }
+
 		public float Speed
 		{
 			get { return Stat.Speed; }
@@ -70,6 +73,11 @@ namespace Server.Game.Object
 			}
 		}
 
+		public virtual GameObject GetOwner()
+		{
+			return this;
+		}
+
 		public static MoveDir GetDirFromVec(Vector2Int dir)
 		{
 			if (dir.x > 0)
@@ -116,7 +124,7 @@ namespace Server.Game.Object
 			S_ChangeHp changePacket = new S_ChangeHp();
 			changePacket.ObjectId = id;
 			changePacket.Hp = Stat.Hp;
-			Room.Broadcast(changePacket);
+			Room.Broadcast(CellPos, changePacket);
 
 			if (Stat.Hp <= 0)
 				OnDead(attacker);
@@ -127,7 +135,7 @@ namespace Server.Game.Object
 			S_Die diePacket = new S_Die();
 			diePacket.ObjectId = id;
 			diePacket.AttackerId = attacker.id;
-			Room.Broadcast(diePacket);
+			Room.Broadcast(CellPos, diePacket);
 
 			GameRoom room = Room;
 			room.LeaveGame(id);
@@ -138,7 +146,7 @@ namespace Server.Game.Object
 			PosInfo.PosX = 0;
 			PosInfo.PosY = 0;
 
-			room.EnterGame(this);
+			room.EnterGame(this, randomPos: true);
 		}
 	}
 }
