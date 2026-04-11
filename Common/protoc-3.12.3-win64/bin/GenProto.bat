@@ -10,6 +10,7 @@ XCOPY /Y Protocol.cs "../../../Client/Assets/Scripts/Packet\"
 XCOPY /Y Protocol.cs "../../../Server/Server/Packet\"
 XCOPY /Y ClientPacketManager.cs "../../../Client/Assets/Scripts/Packet\"
 XCOPY /Y ServerPacketManager.cs "../../../Server/Server/Packet\"
+XCOPY /Y ClientPacketManager.cs "../../../Server/DummyClient/Packet\"
 
 echo [SUCCESS] 
 PAUSE

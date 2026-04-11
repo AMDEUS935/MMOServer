@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.12.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ServerCore\ServerCore.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Server의 Protocol.cs를 직접 참조 - 코드 중복 없이 패킷 클래스 공유 -->
+    <Compile Include="..\Server\Packet\Protocol.cs" />
+  </ItemGroup>
+
+</Project>
