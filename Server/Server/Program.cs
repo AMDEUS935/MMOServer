@@ -40,7 +40,7 @@ namespace Server
 			IPAddress ipAddr = ipHost.AddressList[0];
 			IPEndPoint endPoint = new IPEndPoint(ipAddr, 7777);
 
-			_listener.init(endPoint, () => { return SessionManager.Instance.Generate(); });
+			_listener.Init(endPoint, () => { return SessionManager.Instance.Generate(); });
 			Console.WriteLine("Listening...");
 
 			while (true)

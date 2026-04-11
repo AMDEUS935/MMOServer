@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
 
 namespace ServerCore
 {
@@ -16,6 +15,7 @@ namespace ServerCore
 		{
 			for (int i = 0; i < count; i++)
 			{
+				// 휴대폰 설정
 				Socket socket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 				_sessionFactory = sessionFactory;
 
@@ -25,33 +25,48 @@ namespace ServerCore
 				args.UserToken = socket;
 
 				RegisterConnect(args);
+
+				// TEMP
+				Thread.Sleep(10);
 			}
 		}
 
 		void RegisterConnect(SocketAsyncEventArgs args)
 		{
 			Socket socket = args.UserToken as Socket;
-
 			if (socket == null)
 				return;
 
-			bool pending = socket.ConnectAsync(args);
-
-			if (pending == false)
-				OnConnectCompleted(null, args);
+			try
+			{
+				bool pending = socket.ConnectAsync(args);
+				if (pending == false)
+					OnConnectCompleted(null, args);
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine(e);
+			}
 		}
 
 		void OnConnectCompleted(object sender, SocketAsyncEventArgs args)
 		{
-			if (args.SocketError == SocketError.Success)
+			try
 			{
-				Session session = _sessionFactory.Invoke();
-				session.Start(args.ConnectSocket);
-				session.OnConnected(args.RemoteEndPoint);
+				if (args.SocketError == SocketError.Success)
+				{
+					Session session = _sessionFactory.Invoke();
+					session.Start(args.ConnectSocket);
+					session.OnConnected(args.RemoteEndPoint);
+				}
+				else
+				{
+					Console.WriteLine($"OnConnectCompleted Fail: {args.SocketError}");
+				}
 			}
-			else
+			catch (Exception e)
 			{
-				Console.WriteLine($"OnConnectCompletedFail: {args.SocketError}");
+				Console.WriteLine(e);
 			}
 		}
 	}
