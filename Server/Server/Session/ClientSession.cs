@@ -6,6 +6,7 @@ using Google.Protobuf;
 using Server.Game.Object;
 using Server.Game.Room;
 using Server.Data;
+using Server.Game;
 
 namespace Server
 {
@@ -51,7 +52,7 @@ namespace Server
             }
             //RoomManager.Instance.Find(1).EnterGame(MyPlayer);
 			GameRoom room = RoomManager.Instance.Find(1);
-			room.Push(room.EnterGame, MyPlayer);
+			room.Push(room.EnterGame, MyPlayer, true);
 		}
 
         public override void OnRecvPacket(ArraySegment<byte> buffer)

@@ -10,16 +10,23 @@ namespace Server.Game.Object
 {
 	public class Monster : GameObject
 	{
+		public int TemplateId { get; private set; }
+
 		public Monster()
 		{
 			ObjectType = GameObjectType.Monster;
+		}
 
-			// TEMP
+		public void Init(int templateId)
+		{
+			TemplateId = templateId;
+
+			// TEMP: MonsterData 미구현, 임시 스탯 직접 설정
 			Stat.Level = 1;
 			Stat.Hp = 100;
 			Stat.MaxHp = 100;
+			Stat.Attack = 5;
 			Stat.Speed = 5.0f;
-
 			State = CreatureState.Idle;
 		}
 
@@ -124,7 +131,7 @@ namespace Server.Game.Object
 			S_Move movePacket = new S_Move();
 			movePacket.ObjectId = id;
 			movePacket.PosInfo = PosInfo;
-			Room.Broadcast(movePacket);
+			Room.Broadcast(CellPos, movePacket);
 		}
 
 		long _coolTick = 0;
@@ -170,7 +177,7 @@ namespace Server.Game.Object
 				S_Skill skill = new S_Skill() { Info = new Skill_Info() };
 				skill.ObjectId = id;
 				skill.Info.SkillId = skillData.Id;
-				Room.Broadcast(skill);
+				Room.Broadcast(CellPos, skill);
 
 				// 스킬 쿨타임
 				int coolTick = (int)(1000 * skillData.Cooldown);
