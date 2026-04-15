@@ -93,7 +93,7 @@ namespace Server.Game
 				{
 					respawnPos.x = _rand.Next(Map.MinX, Map.MaxX + 1);
 					respawnPos.y = _rand.Next(Map.MinY, Map.MaxY + 1);
-					if (Map.Find(respawnPos) == null)
+					if (Map.CanGo(respawnPos, checkObjects: false) && Map.Find(respawnPos) == null)
 					{
 						gameObject.CellPos = respawnPos;
 						break;
@@ -263,7 +263,6 @@ namespace Server.Game
 						GameObject target = Map.Find(skillPos);
 						if (target != null)
 						{
-							Console.WriteLine("Hit GameObject !");
 						}
 					}
 					break;

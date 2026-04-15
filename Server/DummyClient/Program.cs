@@ -16,10 +16,12 @@ namespace DummyClient
     class Program
     {
         public static TestMode Mode { get; } = TestMode.MoveOnly;
-        static int DummyClientCount { get; } = 200;
+        static int DummyClientCount { get; } = 300;
+        public static MapData Map { get; } = new MapData();
 
         static void Main(string[] args)
         {
+            Map.LoadMap(1);
             Console.WriteLine($"[더미클라이언트] 시나리오: {Mode} / {DummyClientCount}명 접속 준비 중...");
             Thread.Sleep(3000);
 
@@ -33,7 +35,8 @@ namespace DummyClient
 
             while (true)
             {
-                Thread.Sleep(10000);
+                SessionManager.Instance.Tick();
+                Thread.Sleep(0);
             }
         }
     }

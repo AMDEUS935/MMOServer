@@ -6,23 +6,21 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Server
 {
     class Program
 	{
 		static Listener _listener = new Listener();
-		static List<System.Timers.Timer> _timers = new List<System.Timers.Timer>();
 
-		static void TickRoom(GameRoom room, int tick = 100)
+		static void GameLogicTask()
 		{
-			var timer = new System.Timers.Timer();
-			timer.Interval = tick;
-			timer.Elapsed += ((s, e) => { room.Update(); });
-			timer.AutoReset = true;
-			timer.Enabled = true;
-
-			_timers.Add(timer);
+			while (true)
+			{
+				GameLogic.Instance.Update();
+				Thread.Sleep(0);
+			}
 		}
 
 		static void Main(string[] args)
@@ -30,10 +28,7 @@ namespace Server
 			ConfigManager.LoadConfig();
 			DataManager.LoadData();
 
-			var d = DataManager.StatDict;
-
-			GameRoom room = RoomManager.Instance.Add(1);
-			TickRoom(room, 50);
+			GameLogic.Instance.Push(() => { GameLogic.Instance.Add(1); });
 
 			string host = Dns.GetHostName();
 			IPHostEntry ipHost = Dns.GetHostEntry(host);
@@ -42,6 +37,12 @@ namespace Server
 
 			_listener.Init(endPoint, () => { return SessionManager.Instance.Generate(); });
 			Console.WriteLine("Listening...");
+
+			// GameLogicTask
+			{
+				Task gameLogicTask = new Task(GameLogicTask);
+				gameLogicTask.Start();
+			}
 
 			while (true)
 			{

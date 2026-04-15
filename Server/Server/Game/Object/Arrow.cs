@@ -16,7 +16,7 @@ namespace Server.Game.Object
 				return;
 
 			int tick = (int)(1000 / Data.Projectile.speed);
-			Room.PushAfter(Update, tick);
+			Room.PushAfter(tick, Update);
 
 			Vector2Int destPos = GetFrontCellPos();
 

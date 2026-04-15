@@ -17,6 +17,7 @@ class PacketHandler
         S_EnterGame enterPacket = (S_EnterGame)packet;
         ServerSession serverSession = (ServerSession)session;
         _knownObjects.TryAdd(serverSession.DummyId, new HashSet<int>());
+        serverSession.ObjectId = enterPacket.Player.ObjectId;
         serverSession.StartPlay(enterPacket.Player.PosInfo.PosX, enterPacket.Player.PosInfo.PosY);
     }
 
@@ -46,7 +47,17 @@ class PacketHandler
             objs.Remove(id);
     }
 
-    public static void S_MoveHandler(PacketSession session, IMessage packet) { }
+    public static void S_MoveHandler(PacketSession session, IMessage packet)
+    {
+        S_Move movePacket = (S_Move)packet;
+        ServerSession serverSession = (ServerSession)session;
+
+        if (movePacket.ObjectId == serverSession.ObjectId)
+        {
+            serverSession.PosX = movePacket.PosInfo.PosX;
+            serverSession.PosY = movePacket.PosInfo.PosY;
+        }
+    }
 
     public static void S_SkillHandler(PacketSession session, IMessage packet) { }
 
