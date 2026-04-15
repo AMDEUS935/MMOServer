@@ -6,50 +6,50 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Net;
-using System.Timers;
 
 public class ServerSession : PacketSession
 {
 	public int DummyId { get; set; }
+	public int ObjectId { get; set; }
 	public int PosX { get; set; }
 	public int PosY { get; set; }
 
 	static Random _rand = new Random();
 	static MoveDir[] _dirs = { MoveDir.Up, MoveDir.Down, MoveDir.Left, MoveDir.Right };
 
-	Timer _moveTimer = new Timer();
-	Timer _skillTimer = new Timer();
+	long _nextMoveTick = 0;
+	long _nextSkillTick = 0;
 
 	public void StartPlay(int posX, int posY)
 	{
 		PosX = posX;
 		PosY = posY;
 
-		// 동시 폭발 방지: 각 클라이언트마다 시작 시점을 0~500ms 랜덤 지연
-		int startDelay = _rand.Next(0, 500);
+		long now = Environment.TickCount64;
+		_nextMoveTick = now + _rand.Next(0, 500);
+		_nextSkillTick = now + _rand.Next(0, 1000);
+	}
+
+	public void Tick()
+	{
+		long now = Environment.TickCount64;
 
 		if (Program.Mode == TestMode.MoveOnly || Program.Mode == TestMode.Mixed)
 		{
-			_moveTimer.Interval = startDelay + 500;
-			_moveTimer.Elapsed += (s, e) =>
+			if (now >= _nextMoveTick)
 			{
-				_moveTimer.Interval = 500;
 				SendMovePacket();
-			};
-			_moveTimer.AutoReset = true;
-			_moveTimer.Start();
+				_nextMoveTick = now + 500;
+			}
 		}
 
 		if (Program.Mode == TestMode.SkillOnly || Program.Mode == TestMode.Mixed)
 		{
-			_skillTimer.Interval = startDelay + 1000;
-			_skillTimer.Elapsed += (s, e) =>
+			if (now >= _nextSkillTick)
 			{
-				_skillTimer.Interval = 1000;
 				SendSkillPacket();
-			};
-			_skillTimer.AutoReset = true;
-			_skillTimer.Start();
+				_nextSkillTick = now + 1000;
+			}
 		}
 	}
 
@@ -66,25 +66,36 @@ public class ServerSession : PacketSession
 			case MoveDir.Right: dx =  1; break;
 		}
 
+		int nextX = PosX + dx;
+		int nextY = PosY + dy;
+
+		if (!Program.Map.CanGo(nextX, nextY))
+			return;
+
 		C_Move movePacket = new C_Move();
 		movePacket.PosInfo = new PositionInfo();
 		movePacket.PosInfo.State = CreatureState.Moving;
 		movePacket.PosInfo.MoveDir = dir;
-		movePacket.PosInfo.PosX = PosX + dx;
-		movePacket.PosInfo.PosY = PosY + dy;
+		movePacket.PosInfo.PosX = nextX;
+		movePacket.PosInfo.PosY = nextY;
 
 		Send(movePacket);
-
-		PosX += dx;
-		PosY += dy;
 	}
 
 	void SendSkillPacket()
 	{
+		// 서버 State를 Idle로 리셋해야 스킬 조건 통과
+		C_Move idlePacket = new C_Move();
+		idlePacket.PosInfo = new PositionInfo();
+		idlePacket.PosInfo.State = CreatureState.Idle;
+		idlePacket.PosInfo.MoveDir = MoveDir.Down;
+		idlePacket.PosInfo.PosX = PosX;
+		idlePacket.PosInfo.PosY = PosY;
+		Send(idlePacket);
+
 		C_Skill skillPacket = new C_Skill();
 		skillPacket.Info = new Skill_Info();
 		skillPacket.Info.SkillId = 1;
-
 		Send(skillPacket);
 	}
 
@@ -107,8 +118,6 @@ public class ServerSession : PacketSession
 
 	public override void OnDisconnected(EndPoint endPoint)
 	{
-		_moveTimer.Stop();
-		_skillTimer.Stop();
 		//Console.WriteLine($"OnDisconnected : {endPoint}");
 	}
 

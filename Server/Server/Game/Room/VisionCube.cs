@@ -106,7 +106,7 @@ namespace Server.Game.Room
 			// 교체
 			PreviousObjects = currentObjects;
 
-			Owner.Room.PushAfter(Update,100);
+			Owner.Room.PushAfter(100,Update);
 		}
 	}
 }

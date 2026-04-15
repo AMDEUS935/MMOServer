@@ -41,5 +41,14 @@ namespace DummyClient.Session
                 Console.WriteLine($"Connected ({_sessions.Count}) Players");
             }
         }
+
+        public void Tick()
+        {
+            lock (_lock)
+            {
+                foreach (ServerSession session in _sessions)
+                    session.Tick();
+            }
+        }
     }
 }

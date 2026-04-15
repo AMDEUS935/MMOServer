@@ -31,6 +31,7 @@ namespace Server.Game.Object
 		}
 
 		// FSM (Finite State Machine)
+		IJob _job;
 		public override void Update()
 		{
 			switch (State)
@@ -48,6 +49,10 @@ namespace Server.Game.Object
 					UpdateDead();
 					break;
 			}
+
+			// 200ms마다 한번씩 Update
+			if (Room != null)
+				_job = Room.PushAfter(200, Update);
 		}
 
 		Player _target;
@@ -102,7 +107,7 @@ namespace Server.Game.Object
 				return;
 			}
 
-			List<Vector2Int> path = Room.Map.FindPath(CellPos, _target.CellPos, checkObjects: false);
+			List<Vector2Int> path = Room.Map.FindPath(CellPos, _target.CellPos, checkObjects: true);
 			if (path.Count < 2 || path.Count > _chaseCellDist)
 			{
 				_target = null;
@@ -192,6 +197,17 @@ namespace Server.Game.Object
 		protected virtual void UpdateDead()
 		{
 
+		}
+
+		public override void OnDead(GameObject attacker)
+		{
+			if (_job != null)
+			{
+				_job.Cancel = true;
+				_job = null;
+			}
+
+			base.OnDead(attacker);
 		}
 	}
 }

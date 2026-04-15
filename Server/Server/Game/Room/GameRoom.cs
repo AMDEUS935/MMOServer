@@ -56,7 +56,9 @@ namespace Server.Game
 								   // 21~30칸 = 3존
 			int countY = (Map.SizeY + zoneCells - 1) / zoneCells;
 			int countX = (Map.SizeX + zoneCells - 1) / zoneCells;
+			
 			Zones = new Zone[countY, countX];
+			
 			for (int y = 0; y < countY; y++)
 			{
 				for (int x = 0; x < countX; x++)
@@ -93,7 +95,7 @@ namespace Server.Game
 				{
 					respawnPos.x = _rand.Next(Map.MinX, Map.MaxX + 1);
 					respawnPos.y = _rand.Next(Map.MinY, Map.MaxY + 1);
-					if (Map.Find(respawnPos) == null)
+					if (Map.CanGo(respawnPos, checkObjects: false) && Map.Find(respawnPos) == null)
 					{
 						gameObject.CellPos = respawnPos;
 						break;
@@ -263,7 +265,6 @@ namespace Server.Game
 						GameObject target = Map.Find(skillPos);
 						if (target != null)
 						{
-							Console.WriteLine("Hit GameObject !");
 						}
 					}
 					break;
