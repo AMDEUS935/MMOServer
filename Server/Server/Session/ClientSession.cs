@@ -32,10 +32,6 @@ namespace Server
 
 		public override void OnConnected(EndPoint endPoint)
 		{
-			Console.ForegroundColor = ConsoleColor.Green;
-			Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] [Server] Player {SessionId} Connected : {endPoint}");
-			Console.ResetColor();
-
 			MyPlayer = ObjectManager.Instance.Add<Player>();
 			{
 				MyPlayer.Info.Name = $"Player{MyPlayer.Info.ObjectId}";	

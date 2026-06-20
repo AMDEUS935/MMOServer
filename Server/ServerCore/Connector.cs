@@ -26,7 +26,6 @@ namespace ServerCore
 
 				RegisterConnect(args);
 
-				// TEMP
 				Thread.Sleep(10);
 			}
 		}
