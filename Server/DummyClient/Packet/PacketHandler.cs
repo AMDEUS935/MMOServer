@@ -4,6 +4,7 @@ using ServerCore;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+
 class PacketHandler
 {
 	public static void S_EnterGameHandler(PacketSession session, IMessage packet)

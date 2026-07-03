@@ -11,6 +11,7 @@ namespace Server.Game.Object
 	public class Monster : GameObject
 	{
 		public int TemplateId { get; private set; }
+		IJob _job;
 
 		public Monster()
 		{
@@ -48,6 +49,9 @@ namespace Server.Game.Object
 					UpdateDead();
 					break;
 			}
+
+			if (Room != null)
+				_job = Room.PushAfter(Update, 200);
 		}
 
 		Player _target;
@@ -59,13 +63,10 @@ namespace Server.Game.Object
 		{
 			if (_nextSearchTick > Environment.TickCount64)
 				return;
+
 			_nextSearchTick = Environment.TickCount64 + 1000;
 
-			Player target = Room.FindPlayer(p =>
-			{
-				Vector2Int dir = p.CellPos - CellPos;
-				return dir.cellDistFromZero <= _searchCellDist;
-			});
+			Player target = Room.FindClosestPlayer(CellPos, _searchCellDist);
 
 			if (target == null)
 				return;
@@ -102,7 +103,7 @@ namespace Server.Game.Object
 				return;
 			}
 
-			List<Vector2Int> path = Room.Map.FindPath(CellPos, _target.CellPos, checkObjects: false);
+			List<Vector2Int> path = Room.Map.FindPath(CellPos, _target.CellPos, checkObjects: true);
 			if (path.Count < 2 || path.Count > _chaseCellDist)
 			{
 				_target = null;

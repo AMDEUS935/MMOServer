@@ -16,14 +16,16 @@ namespace Server.Game
 		public void Push<T1, T2>(Action<T1, T2> action, T1 t1, T2 t2) { Push(new Job<T1, T2>(action, t1, t2)); }
 		public void Push<T1, T2, T3>(Action<T1, T2, T3> action, T1 t1, T2 t2, T3 t3) { Push(new Job<T1, T2, T3>(action, t1, t2, t3)); }
 
-		public void PushAfter(Action action, int tickAfter) { PushAfter(new Job(action), tickAfter); }
-		public void PushAfter<T1>(Action<T1> action, T1 t1, int tickAfter) { PushAfter(new Job<T1>(action, t1), tickAfter); }
-		public void PushAfter<T1, T2>(Action<T1, T2> action, T1 t1, T2 t2, int tickAfter) { PushAfter(new Job<T1, T2>(action, t1, t2), tickAfter); }
-		public void PushAfter<T1, T2, T3>(Action<T1, T2, T3> action, T1 t1, T2 t2, T3 t3, int tickAfter) { PushAfter(new Job<T1, T2, T3>(action, t1, t2, t3), tickAfter); }
+		public IJob PushAfter(Action action, int tickAfter) { return PushAfter( tickAfter, new Job(action)); }
+		public IJob PushAfter<T1>(Action<T1> action, T1 t1, int tickAfter) { return PushAfter(tickAfter, new Job<T1>(action, t1)); }
+		public IJob PushAfter<T1, T2>(Action<T1, T2> action, T1 t1, T2 t2, int tickAfter) { return PushAfter(tickAfter, new Job<T1, T2>(action, t1, t2)); }
+		public IJob PushAfter<T1, T2, T3>(Action<T1, T2, T3> action, T1 t1, T2 t2, T3 t3, int tickAfter) { return PushAfter(tickAfter, new Job<T1, T2, T3>(action, t1, t2, t3)); }
 
-		public void PushAfter(IJob job, int tickAfter = 0)
+		public IJob PushAfter(int tickAfter, IJob job)
 		{
 			_timer.Push(job, tickAfter);
+
+			return job;
 		}
 
 		public void Push(IJob job)

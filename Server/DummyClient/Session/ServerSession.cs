@@ -10,6 +10,7 @@ using System.Net;
 public class ServerSession : PacketSession
 {
 	public int DummyId { get; set; }
+
 	public void Send(IMessage packet)
 	{
 		string msgName = packet.Descriptor.Name.Replace("_", string.Empty);

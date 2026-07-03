@@ -17,6 +17,9 @@ public class ObjectManager
 
 	public void Add(ObjectInfo info, bool myPlayer = false)
 	{
+		if (_objects.ContainsKey(info.ObjectId))
+			return;
+
 		GameObjectType objectType = GetObjectTypeById(info.ObjectId);
 
 		if (objectType == GameObjectType.Player)

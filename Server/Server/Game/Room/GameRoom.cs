@@ -20,6 +20,8 @@ namespace Server.Game
 		Dictionary<int, Monster> _monsters = new Dictionary<int, Monster>();
 		Dictionary<int, Projectile> _projectiles = new Dictionary<int, Projectile>();
 
+		public static bool UseZone = false;
+
 		public Zone[,] Zones { get; private set; }
 		public int ZoneCells { get; private set; }
 
@@ -66,7 +68,7 @@ namespace Server.Game
 			}
 
 			// TEMP
-			for (int i = 0; i < 500; i++)
+			for (int i = 0; i < 100; i++)
 			{
 				Monster monster = ObjectManager.Instance.Add<Monster>();
 				monster.Init(1);
@@ -89,11 +91,13 @@ namespace Server.Game
 			if (randomPos)
 			{
 				Vector2Int respawnPos;
+
 				while (true)
 				{
 					respawnPos.x = _rand.Next(Map.MinX, Map.MaxX + 1);
 					respawnPos.y = _rand.Next(Map.MinY, Map.MaxY + 1);
-					if (Map.Find(respawnPos) == null)
+
+					if (Map.CanGo(respawnPos))
 					{
 						gameObject.CellPos = respawnPos;
 						break;
@@ -323,6 +327,16 @@ namespace Server.Game
 
 		public void Broadcast(Vector2Int pos, IMessage packet)
 		{
+			if (UseZone == false)
+			{
+				foreach (Player p in _players.Values)
+				{
+					p.Session.Send(packet);
+				}
+
+				return;
+			}
+
 			List<Zone> zones = GetAdjacentZones(pos);
 
 			foreach (Player p in zones.SelectMany(z => z.Players))
