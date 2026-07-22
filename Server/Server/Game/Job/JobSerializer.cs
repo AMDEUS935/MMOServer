@@ -9,7 +9,6 @@ namespace Server.Game
 		JobTimer _timer = new JobTimer();
 		Queue<IJob> _jobQueue = new Queue<IJob>();
 		object _lock = new object();
-		bool _flush = false;
 
 		public void Push(Action action) { Push(new Job(action)); }
 		public void Push<T1>(Action<T1> action, T1 t1) { Push(new Job<T1>(action, t1)); }
@@ -56,9 +55,9 @@ namespace Server.Game
 			{
 				if (_jobQueue.Count == 0)
 				{
-					_flush = false;
 					return null;
 				}
+
 				return _jobQueue.Dequeue();
 			}
 		}

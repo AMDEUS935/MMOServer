@@ -190,6 +190,17 @@ namespace Server.Game.Object
 			_coolTick = 0;
 		}
 
+		public override void OnDead(GameObject attacker)
+		{
+			if (_job != null)
+			{
+				_job.Cancel = true;
+				_job = null;
+			}
+
+			base.OnDead(attacker);
+		}
+
 		protected virtual void UpdateDead()
 		{
 

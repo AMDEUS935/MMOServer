@@ -6,6 +6,7 @@ using Server.Game.Room;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 
 namespace Server.Game
@@ -20,7 +21,7 @@ namespace Server.Game
 		Dictionary<int, Monster> _monsters = new Dictionary<int, Monster>();
 		Dictionary<int, Projectile> _projectiles = new Dictionary<int, Projectile>();
 
-		public static bool UseZone = false;
+		public static bool UseZone = true;
 
 		public Zone[,] Zones { get; private set; }
 		public int ZoneCells { get; private set; }
@@ -110,7 +111,7 @@ namespace Server.Game
 			if (type == GameObjectType.Player)
 			{
 				Player player = gameObject as Player;
-				_players.Add(gameObject.id, player);
+				_players.Add(gameObject.id, player); // 나를 명단에 추가
 				player.Room = this;
 
 				Map.ApplyMove(player, new Vector2Int(player.CellPos.x, player.CellPos.y));
@@ -122,7 +123,40 @@ namespace Server.Game
 					enterPacket.Player = player.Info;
 					player.Session.Send(enterPacket);
 
-					player.Vision.Update();
+					if (UseZone)
+					{
+						player.Vision.Update();
+					}
+					else
+					{
+						S_Spawn spawn = new S_Spawn();
+
+						foreach (Player p in _players.Values) // 명단 전체를 스폰 패킷에 담음.
+						{
+							if (p != player) // 자신을 제외하여 중복 스폰 방지 (S_EnterGame, S_Spawn)
+							{
+								ObjectInfo info = new ObjectInfo();
+								info.MergeFrom(p.Info);
+								spawn.Objects.Add(info);
+							}
+						}
+
+						foreach (Monster m in _monsters.Values)
+						{
+							ObjectInfo info = new ObjectInfo();
+							info.MergeFrom(m.Info);
+							spawn.Objects.Add(info);
+						}
+
+						foreach (Projectile pj in _projectiles.Values)
+						{
+							ObjectInfo info = new ObjectInfo();
+							info.MergeFrom(pj.Info);
+							spawn.Objects.Add(info);
+						}
+
+						player.Session.Send(spawn);
+					}
 				}
 			}
 			else if (type == GameObjectType.Monster)
@@ -315,6 +349,9 @@ namespace Server.Game
 
 			foreach (Player player in players)
 			{
+				if ((player.CellPos - pos).cellDistFromZero > range) // 플레이어와 몬스터 간 거리가 범위보다 크면 종료 
+					break; // 뒤에 남은 대상들도 다 멀기 때문에 
+
 				List<Vector2Int> path = Map.FindPath(pos, player.CellPos, checkObjects: true);
 				if (path.Count < 2 || path.Count > range)
 					continue;
@@ -354,6 +391,9 @@ namespace Server.Game
 
 		public List<Player> GetAdjacentPlayers(Vector2Int pos, int range)
 		{
+			if (UseZone == false) 
+				return _players.Values.ToList();
+
 			List<Zone> zones = GetAdjacentZones(pos, range);
 			return zones.SelectMany(z => z.Players).ToList();
 		}
